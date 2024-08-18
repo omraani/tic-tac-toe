@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\GameJoined;
 use App\Models\Game;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 class GameController extends Controller
@@ -14,7 +16,11 @@ class GameController extends Controller
     public function index(Request $request)
     {
         return Inertia('Dashboard', [
-            'games' => Game::with('playerOne')->whereNull('player_two_id')->oldest()->simplePaginate(100),
+            'games' => Game::with('playerOne')
+                ->whereNull('player_two_id')
+                ->where('player_one_id', '!=', $request->user()->id)
+                ->oldest()
+                ->simplePaginate(100),
         ]);
     }
 
@@ -46,7 +52,13 @@ class GameController extends Controller
 
     public function join(Request $request, Game $game)
     {
-        $game->update(['player_one_id' => $request->user()->id]);
+        // policy
+        Gate::authorize('join', $game);
+
+        $game->update(['player_two_id' => $request->user()->id]);
+
+        // broadcast event reverb
+        GameJoined::dispatch($game);
 
         return to_route('games.show', $game);
     }
