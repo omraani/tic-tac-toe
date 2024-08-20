@@ -57,8 +57,6 @@ const games = ref(props.games.data);
 Echo.private("loppy").listen("GameJoined", (event) => {
     games.value = games.value.filter((game) => game.id !== event.game.id);
 
-    console.log(games.value.length);
-
     // refresh the page when available games are less than 5
     if (games.value.length < 5) {
         router.reload({
